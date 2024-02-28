@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
-from pathlib import Path
+# Removed pathlib import as it's no longer needed for file path management
 import google.generativeai as genai
 
 # Initialize the Flask application
 app = Flask(__name__)
 
 # Configure the Google Generative AI
-genai.configure(api_key="AIzaSyATPDTtRq7BAP027y-M2j2ztBjq3emqGfE")
+genai.configure(api_key="AIzaSyATPDTtRq7BAP027y-M2j2ztBjq3emqGfE")  # Make sure to secure your API key properly
 
 # Set up the model configuration
 generation_config = {
@@ -34,14 +34,15 @@ def generate_content():
         return jsonify({"error": "Image file is required"}), 400
 
     image_file = request.files['image']
-    image_path = Path(image_file.filename)
-    image_path.write_bytes(image_file.read())
+    # Directly read the image file bytes, avoiding file system writes
+    image_bytes = image_file.read()
 
-    if not image_path.exists():
+    # Since we're not writing to the disk, we check if the bytes are not empty
+    if not image_bytes:
         return jsonify({"error": "Could not process the image"}), 500
 
     # Prepare the prompt with the image data
-    image_parts = [{"mime_type": "image/jpeg", "data": image_path.read_bytes()}]
+    image_parts = [{"mime_type": image_file.mimetype, "data": image_bytes}]
     prompt_parts = [
         " ",
         image_parts[0],
@@ -52,3 +53,5 @@ def generate_content():
     response = model.generate_content(prompt_parts)
     return jsonify({"response": response.text})
 
+if __name__ == '__main__':
+    app.run(debug=True)
